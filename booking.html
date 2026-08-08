@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book your appointment — Blush &amp; Braid Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <span class="brand-mark"></span>
+      Blush &amp; Braid
+    </a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html#services">Services</a></li>
+      <li><a href="index.html#nails">Nails</a></li>
+      <li><a href="index.html#hair">Hair</a></li>
+      <li><a href="index.html#hours">Hours</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="index.html" class="btn btn-ghost">Back home</a>
+    </div>
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="navLinks">&#9776;</button>
+  </div>
+</nav>
+
+<section class="booking-hero">
+  <div class="wrap">
+    <span class="eyebrow">Book your seat</span>
+    <h1>Let's get you on the books</h1>
+    <p>Four quick steps: your details, the look, the time, then confirm. Open 7 a.m. – 9 p.m. daily.</p>
+  </div>
+</section>
+
+<section class="booking-shell">
+  <div class="wrap">
+    <form class="booking-card" id="bookingForm" novalidate>
+
+      <div class="booking-progress">
+        <div class="step-dot active" data-step-label="1">1. Details</div>
+        <div class="step-dot" data-step-label="2">2. The look</div>
+        <div class="step-dot" data-step-label="3">3. Time</div>
+        <div class="step-dot" data-step-label="4">4. Confirm</div>
+      </div>
+
+      <div class="form-panel">
+
+        <!-- STEP 1: Client details -->
+        <div class="form-step active" data-step="1">
+          <div class="field">
+            <label for="clientName">Full name</label>
+            <input type="text" id="clientName" name="clientName" placeholder="e.g. Achieng Wanjiru" required autocomplete="name">
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="clientEmail">Email <span class="hint">(for your confirmation)</span></label>
+              <input type="email" id="clientEmail" name="clientEmail" placeholder="you@example.com" required autocomplete="email">
+            </div>
+            <div class="field">
+              <label for="clientWhatsapp">WhatsApp number</label>
+              <input type="tel" id="clientWhatsapp" name="clientWhatsapp" placeholder="07XX XXX XXX" required autocomplete="tel">
+            </div>
+          </div>
+          <div class="notice error" id="step1Notice"></div>
+          <div class="step-actions">
+            <span></span>
+            <button type="button" class="btn btn-primary" data-next>Continue</button>
+          </div>
+        </div>
+
+        <!-- STEP 2: Category + subcategory + image -->
+        <div class="form-step" data-step="2">
+          <div class="field">
+            <label>What are we booking?</label>
+            <div class="service-toggle">
+              <button type="button" class="service-option" data-service="nails">💅 Nails</button>
+              <button type="button" class="service-option" data-service="hair">💇 Hair</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="subcategory">Choose a style <span class="hint">(select a category above first — prices shown per style)</span></label>
+            <select id="subcategory" name="subcategory" disabled required>
+              <option value="">Select a category first…</option>
+            </select>
+          </div>
+
+          <div class="field" id="otherWrap" style="display:none;">
+            <label for="otherDetail">Describe what you'd like</label>
+            <input type="text" id="otherDetail" name="otherDetail" placeholder="Tell us a bit more about the style">
+          </div>
+
+          <div class="field">
+            <label>Attach a photo of the look you want <span class="hint">(optional but recommended)</span></label>
+            <div class="dropzone" id="dropzone">
+              <strong>Click to upload</strong> or drag an image here
+              <p>PNG or JPG, up to 5MB</p>
+              <input type="file" id="imageInput" accept="image/png, image/jpeg" hidden>
+            </div>
+            <div id="imagePreviewWrap">
+              <img id="imagePreview" alt="Selected reference image preview">
+              <div>
+                <div id="imageFileName" style="font-weight:700; font-size:0.85rem;"></div>
+                <button type="button" class="remove-img" id="removeImage">Remove photo</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="notice error" id="step2Notice"></div>
+          <div class="step-actions">
+            <button type="button" class="btn btn-ghost" data-prev>Back</button>
+            <button type="button" class="btn btn-primary" data-next>Continue</button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Date + time -->
+        <div class="form-step" data-step="3">
+          <div class="field">
+            <label for="bookingDate">Choose a date</label>
+            <input type="date" id="bookingDate" name="bookingDate" required>
+          </div>
+
+          <div class="field">
+            <label>Available time slots <span class="hint">(7:00 a.m. – 9:00 p.m., 1 hour each)</span></label>
+            <div class="slot-grid" id="slotGrid">
+              <p class="hint" style="grid-column: 1/-1;">Pick a date to see open slots.</p>
+            </div>
+          </div>
+
+          <div class="notice warning show" id="slotTakenNotice" style="display:none;">
+            ⏰ That slot has just been taken by another client. Please choose another time below.
+          </div>
+
+          <div class="step-actions">
+            <button type="button" class="btn btn-ghost" data-prev>Back</button>
+            <button type="button" class="btn btn-primary" data-next>Continue</button>
+          </div>
+        </div>
+
+        <!-- STEP 4: Review + confirm -->
+        <div class="form-step" data-step="4">
+          <div class="summary-list" id="summaryList"></div>
+          <div class="notice error" id="step4Notice"></div>
+          <div class="step-actions">
+            <button type="button" class="btn btn-ghost" data-prev>Back</button>
+            <button type="submit" class="btn btn-primary" id="confirmBtn">Confirm booking</button>
+          </div>
+        </div>
+
+        <!-- CONFIRMATION -->
+        <div class="form-step" data-step="5">
+          <div class="confirm-screen">
+            <div class="confirm-icon">✓</div>
+            <h2>You're booked!</h2>
+            <p style="color:#6b3f4c; margin-top:10px;">We've saved your slot and will confirm over WhatsApp shortly.</p>
+            <div class="summary-list" id="finalSummary" style="margin-top:26px; text-align:left;"></div>
+            <a href="index.html" class="btn btn-primary" style="margin-top:10px;">Back to home</a>
+          </div>
+        </div>
+
+      </div>
+    </form>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    &copy; <span id="year"></span> Blush &amp; Braid Studio. Nails &amp; hair, done properly.
+  </div>
+</footer>
+
+<script src="script.js"></script>
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  (function () {
+    var toggle = document.getElementById('navToggle');
+    var links = document.getElementById('navLinks');
+    if (!toggle || !links) return;
+
+    function closeMenu() {
+      links.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.innerHTML = '&#9776;';
+    }
+    function openMenu() {
+      links.classList.add('open');
+      toggle.setAttribute('aria-expanded', 'true');
+      toggle.innerHTML = '&times;';
+    }
+
+    toggle.addEventListener('click', function () {
+      var isOpen = links.classList.contains('open');
+      isOpen ? closeMenu() : openMenu();
+    });
+
+    links.querySelectorAll('a').forEach(function (a) {
+      a.addEventListener('click', closeMenu);
+    });
+
+    window.addEventListener('resize', function () {
+      if (window.innerWidth > 640) closeMenu();
+    });
+  })();
+</script>
+</body>
+</html>
