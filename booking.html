@@ -77,27 +77,37 @@
         <!-- STEP 2: Category + subcategory + image -->
         <div class="form-step" data-step="2">
           <div class="field">
-            <label>What are we booking?</label>
+            <label>What are we booking? <span class="hint">(pick one or both — book nails and hair together)</span></label>
             <div class="service-toggle">
               <button type="button" class="service-option" data-service="nails">💅 Nails</button>
               <button type="button" class="service-option" data-service="hair">💇 Hair</button>
             </div>
           </div>
 
-          <div class="field">
-            <label for="subcategory">Choose a style <span class="hint">(select a category above first — prices shown per style)</span></label>
-            <select id="subcategory" name="subcategory" disabled required>
-              <option value="">Select a category first…</option>
+          <div class="field service-block" id="nailsBlock" style="display:none;">
+            <label for="nailsSubcategory">Nails style <span class="hint">(prices shown per style)</span></label>
+            <select id="nailsSubcategory" name="nailsSubcategory">
+              <option value="">Choose a style…</option>
             </select>
+            <div class="field" id="nailsOtherWrap" style="display:none; margin-top:14px;">
+              <label for="nailsOtherDetail">Describe the nail style you'd like</label>
+              <input type="text" id="nailsOtherDetail" name="nailsOtherDetail" placeholder="Tell us a bit more about the style">
+            </div>
           </div>
 
-          <div class="field" id="otherWrap" style="display:none;">
-            <label for="otherDetail">Describe what you'd like</label>
-            <input type="text" id="otherDetail" name="otherDetail" placeholder="Tell us a bit more about the style">
+          <div class="field service-block" id="hairBlock" style="display:none;">
+            <label for="hairSubcategory">Hair style <span class="hint">(prices shown per style)</span></label>
+            <select id="hairSubcategory" name="hairSubcategory">
+              <option value="">Choose a style…</option>
+            </select>
+            <div class="field" id="hairOtherWrap" style="display:none; margin-top:14px;">
+              <label for="hairOtherDetail">Describe the hair style you'd like</label>
+              <input type="text" id="hairOtherDetail" name="hairOtherDetail" placeholder="Tell us a bit more about the style">
+            </div>
           </div>
 
           <div class="field">
-            <label>Attach a photo of the look you want <span class="hint">(optional but recommended)</span></label>
+            <label>Attach a photo of the look(s) you want <span class="hint">(optional but recommended)</span></label>
             <div class="dropzone" id="dropzone">
               <strong>Click to upload</strong> or drag an image here
               <p>PNG or JPG, up to 5MB</p>

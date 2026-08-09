@@ -75,11 +75,11 @@
 
   var state = {
     step: 1,
-    service: null,       // "nails" | "hair"
-    subcategory: null,
-    subcategoryPriceLabel: null,
-    subcategoryItem: null, // the matched SUBCATEGORIES entry, for deposit calc
-    otherDetail: "",
+    services: { nails: false, hair: false },
+    selections: {
+      nails: { subcategory: null, item: null, priceLabel: null, otherDetail: "" },
+      hair: { subcategory: null, item: null, priceLabel: null, otherDetail: "" }
+    },
     imageFile: null,
     imageDataUrl: null,
     date: null,
@@ -94,6 +94,17 @@
     var raw = item.price * DEPOSIT_PERCENT;
     var rounded = Math.round(raw / 50) * 50;
     return Math.max(rounded, DEPOSIT_MIN);
+  }
+
+  // Sum of deposits across every service the client selected a style for.
+  function recomputeTotalDeposit() {
+    var total = 0;
+    ["nails", "hair"].forEach(function (svc) {
+      if (state.services[svc] && state.selections[svc].item) {
+        total += computeDeposit(state.selections[svc].item);
+      }
+    });
+    state.depositAmount = total > 0 ? total : DEPOSIT_MIN;
   }
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -112,9 +123,22 @@
     var stkPending = document.getElementById("stkPending");
     var stkSuccess = document.getElementById("stkSuccess");
     var stkError = document.getElementById("stkError");
-    var subcategorySelect = document.getElementById("subcategory");
-    var otherWrap = document.getElementById("otherWrap");
-    var otherDetailInput = document.getElementById("otherDetail");
+    var subcategorySelects = {
+      nails: document.getElementById("nailsSubcategory"),
+      hair: document.getElementById("hairSubcategory")
+    };
+    var otherWraps = {
+      nails: document.getElementById("nailsOtherWrap"),
+      hair: document.getElementById("hairOtherWrap")
+    };
+    var otherDetailInputs = {
+      nails: document.getElementById("nailsOtherDetail"),
+      hair: document.getElementById("hairOtherDetail")
+    };
+    var serviceBlocks = {
+      nails: document.getElementById("nailsBlock"),
+      hair: document.getElementById("hairBlock")
+    };
     var dropzone = document.getElementById("dropzone");
     var imageInput = document.getElementById("imageInput");
     var imagePreviewWrap = document.getElementById("imagePreviewWrap");
@@ -196,19 +220,29 @@
       }
       if (n === 2) {
         var notice2 = document.getElementById("step2Notice");
-        if (!state.service) {
-          showNotice(notice2, "Choose Nails or Hair first.");
+        if (!state.services.nails && !state.services.hair) {
+          showNotice(notice2, "Choose Nails, Hair, or both.");
           return false;
         }
-        if (!state.subcategory) {
-          showNotice(notice2, "Please select a style from the dropdown.");
+        var missing = [];
+        ["nails", "hair"].forEach(function (svc) {
+          if (!state.services[svc]) return;
+          var sel = state.selections[svc];
+          if (!sel.subcategory) {
+            missing.push(svc === "nails" ? "a nails style" : "a hair style");
+          } else if (sel.subcategory === "Other" && !otherDetailInputs[svc].value.trim()) {
+            missing.push(svc === "nails" ? "a description for your nail style" : "a description for your hair style");
+          }
+        });
+        if (missing.length) {
+          showNotice(notice2, "Please choose " + missing.join(" and ") + ".");
           return false;
         }
-        if (state.subcategory === "Other" && !otherDetailInput.value.trim()) {
-          showNotice(notice2, "Tell us a little about the style you want.");
-          return false;
-        }
-        state.otherDetail = otherDetailInput.value.trim();
+        ["nails", "hair"].forEach(function (svc) {
+          if (state.services[svc]) {
+            state.selections[svc].otherDetail = otherDetailInputs[svc].value.trim();
+          }
+        });
         hideNotice(notice2);
         return true;
       }
@@ -253,38 +287,58 @@
       el.classList.remove("show");
     }
 
-    // ---------- Service + subcategory ----------
+    // ---------- Service + subcategory (client can pick nails, hair, or both) ----------
     serviceButtons.forEach(function (btn) {
       btn.addEventListener("click", function () {
-        serviceButtons.forEach(function (b) { b.classList.remove("selected"); });
-        btn.classList.add("selected");
-        state.service = btn.dataset.service;
-        state.subcategory = null;
-        populateSubcategories(state.service);
+        var svc = btn.dataset.service;
+        var nowSelected = !btn.classList.contains("selected");
+        btn.classList.toggle("selected", nowSelected);
+        state.services[svc] = nowSelected;
+        serviceBlocks[svc].style.display = nowSelected ? "block" : "none";
+
+        if (nowSelected) {
+          populateSubcategories(svc);
+        } else {
+          // Clear that service's selection when it's deselected
+          state.selections[svc] = { subcategory: null, item: null, priceLabel: null, otherDetail: "" };
+          subcategorySelects[svc].value = "";
+          otherWraps[svc].style.display = "none";
+          otherDetailInputs[svc].value = "";
+        }
+        recomputeTotalDeposit();
       });
     });
 
     function populateSubcategories(service) {
       var list = SUBCATEGORIES[service] || [];
-      subcategorySelect.innerHTML = '<option value="">Choose a style…</option>';
+      var select = subcategorySelects[service];
+      select.innerHTML = '<option value="">Choose a style…</option>';
       list.forEach(function (item) {
         var opt = document.createElement("option");
         opt.value = item.name;
         opt.dataset.priceLabel = formatPrice(item);
         opt.textContent = item.name + " — " + formatPrice(item);
-        subcategorySelect.appendChild(opt);
+        select.appendChild(opt);
       });
-      subcategorySelect.disabled = false;
     }
 
-    subcategorySelect.addEventListener("change", function () {
-      state.subcategory = subcategorySelect.value || null;
-      var selectedOpt = subcategorySelect.options[subcategorySelect.selectedIndex];
-      state.subcategoryPriceLabel = state.subcategory ? selectedOpt.dataset.priceLabel : null;
-      var list = SUBCATEGORIES[state.service] || [];
-      state.subcategoryItem = list.filter(function (i) { return i.name === state.subcategory; })[0] || null;
-      state.depositAmount = computeDeposit(state.subcategoryItem);
-      otherWrap.style.display = state.subcategory === "Other" ? "block" : "none";
+    ["nails", "hair"].forEach(function (svc) {
+      subcategorySelects[svc].addEventListener("change", function () {
+        var select = subcategorySelects[svc];
+        var value = select.value || null;
+        var selectedOpt = select.options[select.selectedIndex];
+        var list = SUBCATEGORIES[svc] || [];
+        var item = list.filter(function (i) { return i.name === value; })[0] || null;
+
+        state.selections[svc] = {
+          subcategory: value,
+          item: item,
+          priceLabel: value ? selectedOpt.dataset.priceLabel : null,
+          otherDetail: state.selections[svc].otherDetail
+        };
+        otherWraps[svc].style.display = value === "Other" ? "block" : "none";
+        recomputeTotalDeposit();
+      });
     });
 
     // ---------- Image upload ----------
@@ -438,13 +492,37 @@
     }
 
     // ---------- Summary ----------
+    function styleRows() {
+      var rows = "";
+      var hasOnRequest = false;
+      var total = 0;
+
+      ["nails", "hair"].forEach(function (svc) {
+        if (!state.services[svc]) return;
+        var sel = state.selections[svc];
+        var label = sel.subcategory === "Other" ? "Other — " + sel.otherDetail : sel.subcategory;
+        var priceLabel = sel.subcategory === "Other" ? "On request" : (sel.priceLabel || "—");
+        rows += row(svc === "nails" ? "Nails style" : "Hair style", label || "—");
+        rows += row(svc === "nails" ? "Nails price" : "Hair price", priceLabel);
+
+        if (sel.item && typeof sel.item.price === "number") {
+          total += sel.item.price;
+        } else {
+          hasOnRequest = true;
+        }
+      });
+
+      var totalLabel = total > 0
+        ? "KSh " + total.toLocaleString() + (hasOnRequest ? " + item(s) on request" : "")
+        : "On request";
+      rows += row("Estimated total", totalLabel);
+      return rows;
+    }
+
     function renderSummary(target) {
       var name = document.getElementById("clientName").value.trim();
       var email = document.getElementById("clientEmail").value.trim();
       var whatsapp = document.getElementById("clientWhatsapp").value.trim();
-      var styleLabel = state.subcategory === "Other"
-        ? "Other — " + state.otherDetail
-        : state.subcategory;
       var paymentLabel = state.paymentMethod === "mpesa"
         ? "KSh " + state.depositAmount.toLocaleString() + " deposit paid via M-Pesa"
         : state.paymentMethod === "salon"
@@ -455,9 +533,7 @@
         row("Name", name) +
         row("Email", email) +
         row("WhatsApp", whatsapp) +
-        row("Category", state.service === "hair" ? "Hair" : "Nails") +
-        row("Style", styleLabel || "—") +
-        row("Estimated price", state.subcategory === "Other" ? "On request" : (state.subcategoryPriceLabel || "—")) +
+        styleRows() +
         row("Reference photo", state.imageFile ? state.imageFile.name : "Not attached") +
         row("Date", state.date) +
         row("Time", state.hour !== null ? formatHourLabel(state.hour) : "—") +
