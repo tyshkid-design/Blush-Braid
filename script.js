@@ -1,5 +1,5 @@
 /* ============================================================
-   Blush & Braid Studio — booking logic
+   Luminous — booking logic
    NOTE: There is no backend here, so booked slots live only in
    this browser tab's memory (the `bookings` array below) and
    reset on refresh. Wire this up to a real database/API so
@@ -70,17 +70,31 @@
   }
 
   // ---------------- State ----------------
+  var DEPOSIT_PERCENT = 0.2;   // 20% of the service price
+  var DEPOSIT_MIN = 300;       // floor for services with no fixed price ("Other", on-request)
+
   var state = {
     step: 1,
     service: null,       // "nails" | "hair"
     subcategory: null,
     subcategoryPriceLabel: null,
+    subcategoryItem: null, // the matched SUBCATEGORIES entry, for deposit calc
     otherDetail: "",
     imageFile: null,
     imageDataUrl: null,
     date: null,
-    hour: null            // 24h start hour of chosen slot
+    hour: null,            // 24h start hour of chosen slot
+    paymentMethod: null,   // "mpesa" | "salon"
+    paymentStatus: null,   // null | "pending" | "paid"
+    depositAmount: DEPOSIT_MIN
   };
+
+  function computeDeposit(item) {
+    if (!item || item.price === null || item.price === undefined) return DEPOSIT_MIN;
+    var raw = item.price * DEPOSIT_PERCENT;
+    var rounded = Math.round(raw / 50) * 50;
+    return Math.max(rounded, DEPOSIT_MIN);
+  }
 
   document.addEventListener("DOMContentLoaded", function () {
     var form = document.getElementById("bookingForm");
@@ -88,7 +102,16 @@
 
     var steps = form.querySelectorAll(".form-step");
     var dots = form.querySelectorAll(".step-dot");
-    var serviceButtons = form.querySelectorAll(".service-option");
+    var serviceButtons = form.querySelectorAll(".service-option[data-service]");
+    var paymentButtons = form.querySelectorAll(".service-option[data-payment]");
+    var mpesaPanel = document.getElementById("mpesaPanel");
+    var salonPanel = document.getElementById("salonPanel");
+    var mpesaPhoneInput = document.getElementById("mpesaPhone");
+    var depositAmountLabel = document.getElementById("depositAmountLabel");
+    var sendStkBtn = document.getElementById("sendStkBtn");
+    var stkPending = document.getElementById("stkPending");
+    var stkSuccess = document.getElementById("stkSuccess");
+    var stkError = document.getElementById("stkError");
     var subcategorySelect = document.getElementById("subcategory");
     var otherWrap = document.getElementById("otherWrap");
     var otherDetailInput = document.getElementById("otherDetail");
@@ -134,7 +157,18 @@
         d.classList.toggle("active", i + 1 === n);
         d.classList.toggle("done", i + 1 < n);
       });
-      if (n === 4) renderSummary(summaryList);
+      if (n === 4) {
+        if (mpesaPhoneInput && !mpesaPhoneInput.value) {
+          mpesaPhoneInput.value = document.getElementById("clientWhatsapp").value.trim();
+        }
+        if (depositAmountLabel) {
+          depositAmountLabel.textContent = "KSh " + state.depositAmount.toLocaleString();
+        }
+        if (sendStkBtn && state.paymentStatus !== "paid") {
+          sendStkBtn.textContent = "Send STK push — pay KSh " + state.depositAmount.toLocaleString();
+        }
+      }
+      if (n === 5) renderSummary(summaryList);
       window.scrollTo({ top: form.offsetTop - 90, behavior: "smooth" });
     }
 
@@ -195,6 +229,19 @@
         }
         return true;
       }
+      if (n === 4) {
+        var notice4 = document.getElementById("step4Notice");
+        if (!state.paymentMethod) {
+          showNotice(notice4, "Choose how you'd like to pay first.");
+          return false;
+        }
+        if (state.paymentMethod === "mpesa" && state.paymentStatus !== "paid") {
+          showNotice(notice4, "Please complete the M-Pesa deposit above, or switch to \u201cPay at the salon\u201d.");
+          return false;
+        }
+        hideNotice(notice4);
+        return true;
+      }
       return true;
     }
 
@@ -234,6 +281,9 @@
       state.subcategory = subcategorySelect.value || null;
       var selectedOpt = subcategorySelect.options[subcategorySelect.selectedIndex];
       state.subcategoryPriceLabel = state.subcategory ? selectedOpt.dataset.priceLabel : null;
+      var list = SUBCATEGORIES[state.service] || [];
+      state.subcategoryItem = list.filter(function (i) { return i.name === state.subcategory; })[0] || null;
+      state.depositAmount = computeDeposit(state.subcategoryItem);
       otherWrap.style.display = state.subcategory === "Other" ? "block" : "none";
     });
 
@@ -289,6 +339,52 @@
       imagePreviewWrap.style.display = "none";
       dropzone.style.display = "block";
     });
+
+    // ---------- Payment (STK push is simulated client-side; wire to
+    // Safaricom Daraja API — or similar — from the backend for real pushes) ----------
+    paymentButtons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        paymentButtons.forEach(function (b) { b.classList.remove("selected"); });
+        btn.classList.add("selected");
+        state.paymentMethod = btn.dataset.payment;
+
+        mpesaPanel.style.display = state.paymentMethod === "mpesa" ? "block" : "none";
+        salonPanel.style.display = state.paymentMethod === "salon" ? "block" : "none";
+
+        if (state.paymentMethod === "salon") {
+          state.paymentStatus = null;
+          stkPending.classList.remove("show");
+          stkSuccess.classList.remove("show");
+          hideNotice(stkError);
+        }
+        hideNotice(document.getElementById("step4Notice"));
+      });
+    });
+
+    if (sendStkBtn) {
+      sendStkBtn.addEventListener("click", function () {
+        var phone = mpesaPhoneInput.value.trim();
+        hideNotice(stkError);
+        if (phone.replace(/\D/g, "").length < 9) {
+          showNotice(stkError, "Enter a valid M-Pesa number to receive the push.");
+          return;
+        }
+
+        sendStkBtn.disabled = true;
+        sendStkBtn.textContent = "Sending request…";
+        stkSuccess.classList.remove("show");
+        stkPending.classList.add("show");
+        state.paymentStatus = "pending";
+
+        // Simulated response — a real integration would poll the
+        // backend for the Daraja callback result instead of a timer.
+        setTimeout(function () {
+          stkPending.classList.remove("show");
+          stkSuccess.classList.add("show");
+          state.paymentStatus = "paid";
+          sendStkBtn.textContent = "Deposit paid ✓";
+        }, 2600);      });
+    }
 
     // ---------- Date + slots ----------
     dateInput.addEventListener("change", function () {
@@ -349,6 +445,11 @@
       var styleLabel = state.subcategory === "Other"
         ? "Other — " + state.otherDetail
         : state.subcategory;
+      var paymentLabel = state.paymentMethod === "mpesa"
+        ? "KSh " + state.depositAmount.toLocaleString() + " deposit paid via M-Pesa"
+        : state.paymentMethod === "salon"
+          ? "Pay in full at the salon"
+          : "—";
 
       target.innerHTML =
         row("Name", name) +
@@ -359,7 +460,8 @@
         row("Estimated price", state.subcategory === "Other" ? "On request" : (state.subcategoryPriceLabel || "—")) +
         row("Reference photo", state.imageFile ? state.imageFile.name : "Not attached") +
         row("Date", state.date) +
-        row("Time", state.hour !== null ? formatHourLabel(state.hour) : "—");
+        row("Time", state.hour !== null ? formatHourLabel(state.hour) : "—") +
+        row("Payment", paymentLabel);
     }
 
     function row(label, value) {
@@ -374,19 +476,24 @@
     // ---------- Submit ----------
     form.addEventListener("submit", function (e) {
       e.preventDefault();
-      var notice4 = document.getElementById("step4Notice");
+      var notice5 = document.getElementById("step5Notice");
       var key = state.date + "|" + state.hour;
 
       // Final race-condition check before confirming
       if (bookings[key]) {
-        showNotice(notice4, "That slot was just booked by someone else — please go back and pick another time.");
+        showNotice(notice5, "That slot was just booked by someone else — please go back and pick another time.");
         return;
       }
 
       bookings[key] = true; // mark as taken for this session
 
+      var confirmMessage = document.getElementById("confirmMessage");
+      confirmMessage.textContent = state.paymentMethod === "mpesa"
+        ? "Your KSh " + state.depositAmount.toLocaleString() + " deposit is confirmed and your slot is held. We'll also send a confirmation over WhatsApp."
+        : "We've saved your slot and will confirm over WhatsApp shortly. Please pay the full amount at the salon.";
+
       renderSummary(finalSummary);
-      goToStep(5);
+      goToStep(6);
     });
   });
 })();

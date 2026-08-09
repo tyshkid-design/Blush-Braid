@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Book your appointment — Blush &amp; Braid Studio</title>
+<title>Book your appointment — Luminous</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
@@ -14,7 +14,7 @@
   <div class="wrap">
     <a href="index.html" class="brand">
       <span class="brand-mark"></span>
-      Blush &amp; Braid
+      Luminous
     </a>
     <ul class="nav-links" id="navLinks">
       <li><a href="index.html#services">Services</a></li>
@@ -45,7 +45,8 @@
         <div class="step-dot active" data-step-label="1">1. Details</div>
         <div class="step-dot" data-step-label="2">2. The look</div>
         <div class="step-dot" data-step-label="3">3. Time</div>
-        <div class="step-dot" data-step-label="4">4. Confirm</div>
+        <div class="step-dot" data-step-label="4">4. Payment</div>
+        <div class="step-dot" data-step-label="5">5. Confirm</div>
       </div>
 
       <div class="form-panel">
@@ -142,10 +143,52 @@
           </div>
         </div>
 
-        <!-- STEP 4: Review + confirm -->
+        <!-- STEP 4: Payment (STK push simulation — real Daraja/M-Pesa integration comes with the backend) -->
         <div class="form-step" data-step="4">
-          <div class="summary-list" id="summaryList"></div>
+          <div class="field">
+            <label>How would you like to pay?</label>
+            <div class="service-toggle">
+              <button type="button" class="service-option" data-payment="mpesa">📲 Pay deposit now (M-Pesa)</button>
+              <button type="button" class="service-option" data-payment="salon">🏠 Pay at the salon</button>
+            </div>
+          </div>
+
+          <div id="mpesaPanel" style="display:none;">
+            <div class="summary-list" style="margin-bottom:22px;">
+              <div><span>Booking deposit (20% of service)</span><span id="depositAmountLabel">KSh 500</span></div>
+              <div><span>Balance due</span><span>At the salon</span></div>
+            </div>
+            <div class="field">
+              <label for="mpesaPhone">M-Pesa number to send the STK push to</label>
+              <input type="tel" id="mpesaPhone" name="mpesaPhone" placeholder="07XX XXX XXX">
+            </div>
+            <button type="button" class="btn btn-primary" id="sendStkBtn" style="width:100%;">Send STK push</button>
+            <div class="notice loading" id="stkPending">
+              📲 Request sent to your phone. Enter your M-Pesa PIN to confirm — this can take a few seconds.
+            </div>
+            <div class="notice success" id="stkSuccess">
+              ✅ Deposit received. This amount will be deducted from your final bill.
+            </div>
+            <div class="notice error" id="stkError"></div>
+          </div>
+
+          <div id="salonPanel" style="display:none;">
+            <div class="notice warning show">
+              🏠 No deposit needed — settle the full amount by cash or M-Pesa at the salon after your appointment.
+            </div>
+          </div>
+
           <div class="notice error" id="step4Notice"></div>
+          <div class="step-actions">
+            <button type="button" class="btn btn-ghost" data-prev>Back</button>
+            <button type="button" class="btn btn-primary" data-next>Continue</button>
+          </div>
+        </div>
+
+        <!-- STEP 5: Review + confirm -->
+        <div class="form-step" data-step="5">
+          <div class="summary-list" id="summaryList"></div>
+          <div class="notice error" id="step5Notice"></div>
           <div class="step-actions">
             <button type="button" class="btn btn-ghost" data-prev>Back</button>
             <button type="submit" class="btn btn-primary" id="confirmBtn">Confirm booking</button>
@@ -153,11 +196,11 @@
         </div>
 
         <!-- CONFIRMATION -->
-        <div class="form-step" data-step="5">
+        <div class="form-step" data-step="6">
           <div class="confirm-screen">
             <div class="confirm-icon">✓</div>
             <h2>You're booked!</h2>
-            <p style="color:#6b3f4c; margin-top:10px;">We've saved your slot and will confirm over WhatsApp shortly.</p>
+            <p style="color:#6b3f4c; margin-top:10px;" id="confirmMessage">We've saved your slot and will confirm over WhatsApp shortly.</p>
             <div class="summary-list" id="finalSummary" style="margin-top:26px; text-align:left;"></div>
             <a href="index.html" class="btn btn-primary" style="margin-top:10px;">Back to home</a>
           </div>
@@ -170,7 +213,7 @@
 
 <footer>
   <div class="wrap">
-    &copy; <span id="year"></span> Blush &amp; Braid Studio. Nails &amp; hair, done properly.
+    &copy; <span id="year"></span> Luminous. Nails &amp; hair, done properly.
   </div>
 </footer>
 
